@@ -1,20 +1,53 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title>Restaurantes</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding">
+  <ion-button expand="full" (click)="importarJSON()">Importar JSON a Firebase</ion-button>
+  <ion-button expand="full" color="secondary" (click)="cargarDatos()">Cargar Restaurantes</ion-button>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+  <!-- Input de búsqueda -->
+  <ion-item style="margin-top: 20px;">
+    <ion-input placeholder="Buscar por nombre"
+  (ionInput)="textoBusqueda.set($any($event.target).value)">></ion-input>
+  </ion-item>
+
+  <!-- Tabla de restaurantes -->
+
+    <table [@if]="restaurantesFiltrados().length > 0" border="1" style="margin-top: 20px; width: 100%;">
+      <tr>
+        <th>Nombre</th>
+        <th>Localidad</th>
+        <th>Dirección</th>
+        <th>Teléfono</th>
+        <th>Capacidad</th>
+        <th>Web</th>
+        <th>Territorio</th>
+        <th>País</th>
+        <th>Michelin</th>
+        <th>Repsol</th>
+      </tr>
+      @for(r of restaurantesFiltrados(); track r.documentName){ 
+        <tr>
+          <td>{{ r.documentName }}</td>
+          <td>{{ r.locality }}</td>
+          <td>{{ r.address }}</td>
+          <td>{{ r.phone }}</td>
+          <td>{{ r.capacity }}</td>
+          <td><a [href]="r.web" target="_blank">{{ r.web }}</a></td>
+          <td>{{ r.territory }}</td>
+          <td>{{ r.country }}</td>
+          <td>{{ r.michelinStar }}</td>
+          <td>{{ r.repsolSun }}</td>
+        </tr>
+      }
+      @empty {
+      <tr>
+        <td colspan="10">No hay restaurantes cargados.</td>
+      </tr>
+      }
+    </table>
+
 </ion-content>
