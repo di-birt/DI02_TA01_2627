@@ -2,11 +2,11 @@
 export const environment = {
   production: false,
   firebase : {
-    apiKey: "AIzaSyCgBcG-5VocU1yUCzoYmfTSRlYvaMxVNUg",
-    authDomain: "di-bbdd.firebaseapp.com",
-    projectId: "di-bbdd",
-    storageBucket: "di-bbdd.firebasestorage.app",
-    messagingSenderId: "383699188490",
-    appId: "1:383699188490:web:e61e4a30dd08b84fd958f3"
+    apiKey: "AIzaSyCURHz7nBMeuUMqAy5Zz9ORkJaFqE5wNFk",
+    authDomain: "dibbdd-1d46f.firebaseapp.com",
+    projectId: "dibbdd-1d46f",
+    storageBucket: "dibbdd-1d46f.firebasestorage.app",
+    messagingSenderId: "517767549438",
+    appId: "1:517767549438:web:b0793783b9cffb446130af"
   }
 }

@@ -5,17 +5,114 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <ion-button expand="full" (click)="importarJSON()">Importar JSON a Firebase</ion-button>
-  <ion-button expand="full" color="secondary" (click)="cargarDatos()">Cargar Restaurantes</ion-button>
-
-  <!-- Input de búsqueda -->
-  <ion-item style="margin-top: 20px;">
-    <ion-input placeholder="Buscar por nombre"
-  (ionInput)="textoBusqueda.set($any($event.target).value)">></ion-input>
+  <ion-button 
+    expand="full"
+    color="secondary"
+    (click)="importarJSON()"
+    [disabled]="importando()">
+    {{ importando() ? 'Importando JSON en FireBase...' : 'Importar JSON a Firebase' }}
+  </ion-button>
+  <ion-button
+    expand="full"
+    color="secondary"
+    (click)="cargarDatos()"
+    [disabled]="cargando() || importando()">
+    {{ cargando() ? 'Cargando...' : 'Cargar Restaurantes' }}
+  </ion-button>
+  
+  <!-- Estado de la importación: spinner o mensaje -->
+  <ion-item *ngIf="importando()">
+    <ion-label>
+      <ion-spinner slot="start"></ion-spinner>
+      {{ estadoImportacion() }}
+    </ion-label>
+  </ion-item>
+  <!-- Mensaje de estado si no está importando -->
+  <ion-item *ngIf="!importando() && estadoImportacion()">
+    <ion-label>{{ estadoImportacion() }}</ion-label>
   </ion-item>
 
-  <!-- Tabla de restaurantes -->
+  <!-- Estado de la carga de restaurantes: spinner o mensaje -->
+  <ion-item *ngIf="cargando()">
+    <ion-label>
+      <ion-spinner slot="start"></ion-spinner>
+      {{ estadoCarga() }}
+    </ion-label>
+  </ion-item>
+  <!-- Mensaje de estado si no está cargando -->
+  <ion-item *ngIf="!cargando() && estadoCarga()">
+    <ion-label>{{ estadoCarga() }}</ion-label>
+  </ion-item>
 
+  <ion-grid>
+    <ion-row class="ion-align-items-center ion-justify-content-start">
+      
+      <!-- Buscador -->
+      <ion-col size="12" size-md="2">
+        <ion-item>
+          <ion-input
+            placeholder="Buscar por nombre"
+            [value]="textoBusqueda()"
+            [disabled]="!hayDatos()"
+            (ionInput)="textoBusqueda.set($any($event.target).value)">
+          </ion-input>
+        </ion-item>
+      </ion-col>
+
+      <!-- Select de territorio -->
+      <ion-col size="12" size-md="3">
+        <ion-item>
+          <ion-label>Filtrar por territorio</ion-label>
+          <ion-select
+            placeholder="Selecciona un territorio"
+            [value]="territorioSeleccionado()"
+            [disabled]="!hayDatos()"
+            (ionChange)="onTerritorioChange($event)">
+            <ion-select-option
+              *ngFor="let t of territoriosFiltrados()"
+              [value]="t">
+              {{ t }}
+            </ion-select-option>
+          </ion-select>
+          <ion-button
+            slot="end"
+            fill="clear"
+            [disabled]="!territorioSeleccionado()"
+            (click)="territorioSeleccionado.set('')">
+            Limpiar
+          </ion-button>
+        </ion-item>
+      </ion-col>
+
+      <!-- Select múltiple de localidades -->
+      <ion-col size="12" size-md="4">
+        <ion-item>
+          <ion-label>Filtrar por localidades</ion-label>
+          <ion-select
+            placeholder="Selecciona localidades"
+            multiple="true"
+            [value]="localidadesSeleccionadasArray"
+            [disabled]="!hayDatos()"
+            (ionChange)="onLocalidadesChange($event)">
+            <ion-select-option
+              *ngFor="let loc of localidadesFiltradasPorTerritorio()"
+              [value]="loc">
+              {{ loc }}
+            </ion-select-option>
+          </ion-select>
+          <ion-button
+            slot="end"
+            fill="clear"
+            [disabled]="localidadesSeleccionadas().size === 0"
+            (click)="limpiarLocalidades()">
+            Limpiar
+          </ion-button>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+  <!-- Tabla de restaurantes -->
     <table [@if]="restaurantesFiltrados().length > 0" border="1" style="margin-top: 20px; width: 100%;">
       <tr>
         <th>Nombre</th>
@@ -39,8 +136,16 @@
           <td><a [href]="r.web" target="_blank">{{ r.web }}</a></td>
           <td>{{ r.territory }}</td>
           <td>{{ r.country }}</td>
-          <td>{{ r.michelinStar }}</td>
-          <td>{{ r.repsolSun }}</td>
+          <td>
+            @for(_ of estrellasMichelin(r); track _){
+              <ion-icon name="star" color="warning"></ion-icon>
+            }
+          </td>
+          <td>
+             @for(_ of repsolSoles(r); track _){
+              <ion-icon name="sunny" color="danger"></ion-icon>
+            }
+          </td>
         </tr>
       }
       @empty {
