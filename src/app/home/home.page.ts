@@ -1,83 +1,37 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { Firestore, collection, addDoc, getDocs, deleteDoc, doc } from '@angular/fire/firestore';
 import restaurantesJSON from '../../assets/datos/restaurantes.json';
 import { IonicModule } from '@ionic/angular';
-import { CommonModule } from '@angular/common';
+import { AlertController, ToastController, LoadingController } from '@ionic/angular';
+import { Restaurante } from '../interface/restaurante';
 
-import { addIcons } from 'ionicons'; // Importar addIcons
-import { star, sunny } from 'ionicons/icons';
-
-interface Restaurante {
-  documentName: string;
-  documentDescription: string;
-  templateType: string;
-  locality: string;
-  localityQ: string,
-  qualityQ : string,
-  qualityIconDescription : string,
-  accesibility : string,
-  accesibilityIconDescription : string,
-  phone : string,
-  address : string,
-  marks : string,
-  physical : string,
-  visual : string,
-  auditive : string,
-  intellectual : string,
-  organic : string,
-  qualityAssurance : string,
-  tourismEmail : string,
-  web : string,
-  importance : string,
-  room : string,
-  productClub : string,
-  visit : string,
-  capacity : string,
-  store : string,
-  gastronomical : string,
-  surfing : string,
-  postalCode : string,
-  restorationType : string,
-  recomended : string,
-  recomendedURLIcon : string,
-  recomendedIconDescription : string,
-  restaurant : string,
-  bodega : string,
-  michelinStar : string,
-  repsolSun : string,
-  latitudelongitude : string,
-  latwgs84 : string,
-  lonwgs84 : string,
-  placename : string,
-  municipality : string,
-  municipalitycode : string,
-  postalcode : string,
-  territory : string,
-  territorycode : string,
-  country : string,
-  countrycode : string,
-  email : string,
-  webpage : string,
-  friendlyUrl : string,
-  physicalUrl : string,
-  dataXML : string,
-  metadataXML : string,
-  zipFile : string
-  // añade más campos si quieres
-}
+import { addIcons } from 'ionicons';
+import { 
+  star, sunny, cloudUploadOutline, restaurantOutline,
+  closeCircleOutline, searchOutline, filterOutline, trashOutline,
+  // ✅ Añadidos: iconos que se usan en el HTML pero faltaban registrados
+  globeOutline, warningOutline, informationCircleOutline
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule],
   templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss']
 })
 export class HomePage {
+
+  //Inject se usa para obtener instancias de servicios en componentes standalone sin necesidad de un constructor explícito
+  firestore = inject(Firestore);
+  alertCtrl = inject(AlertController);
+  toastCtrl = inject(ToastController);
+  loadingCtrl    = inject(LoadingController);
   restaurantes: Restaurante[] = restaurantesJSON as Restaurante[];
+
+  //signals para manejar el estado de la aplicación de forma reactiva y eficiente
   restaurantesCargados = signal<Restaurante[]>([]);
   textoBusqueda = signal('');
-  //Signal para filtrar por localidad
-  //Si habría campos nulos habría que controlar esos valores --> territorioSeleccionado = signal<string | null>(null);
   territorioSeleccionado = signal('');
   cargando = signal(false);
   importando = signal(false);
@@ -85,74 +39,66 @@ export class HomePage {
   estadoCarga = signal('');
   estadoImportacion = signal('');
 
-  constructor(private firestore: Firestore) {
-    addIcons({star, sunny}); // Registrar los iconos que se van a usar
+  constructor() {
+    //Añadimos los iconos que vamos a usar en el HTML para que estén disponibles globalmente
+    addIcons({
+      star, sunny, cloudUploadOutline, restaurantOutline,
+      closeCircleOutline, searchOutline, filterOutline, trashOutline,
+      globeOutline, warningOutline, informationCircleOutline
+    });
   }
 
-  //Comprobamos si hay datos cargados para mostrar los filtros
+  //computed para derivar datos basados en el estado actual de los signals, evitando cálculos innecesarios y mejorando el rendimiento
   hayDatos = computed(() => this.restaurantesCargados().length > 0);
 
-  // Extraemos territorios únicos de los restaurantes cargados
-  territoriosFiltrados = computed(() => {
+  readonly hayFiltrosActivos = computed(() =>
+    !!this.textoBusqueda() ||
+    !!this.territorioSeleccionado() ||
+    this.localidadesSeleccionadas().size > 0
+  );
+
+  readonly territoriosFiltrados = computed(() => {
     const territorios = this.restaurantesCargados().map(r => r.territory);
-    // elimina duplicados y ordena alfabéticamente
-    return Array.from(new Set(territorios)).sort(); 
+    return Array.from(new Set(territorios)).sort();
   });
 
-  // Localidades que se muestran en el multi-select, filtradas por territorio seleccionado
-  localidadesFiltradasPorTerritorio = computed(() => {
+  readonly localidadesFiltradasPorTerritorio = computed(() => {
     let lista = this.restaurantesCargados();
-
     const territorio = this.territorioSeleccionado().toLowerCase().trim();
     if (territorio) {
       lista = lista.filter(r => r.territory?.toLowerCase().trim() === territorio);
     }
-
-    // Extraer localidades únicas de la lista filtrada
-    const localities = lista
-      .map(r => r.locality?.trim())
-      .filter(l => !!l);
-
+    const localities = lista.map(r => r.locality?.trim()).filter((l): l is string => !!l);
     return Array.from(new Set(localities)).sort();
   });
 
-  // Devuelve un array de las localidades seleccionadas para el select múltiple
-  get localidadesSeleccionadasArray(): string[] {
-    return Array.from(this.localidadesSeleccionadas());
-  }
-
-  // Computed que filtra restaurantes según texto de búsqueda, territorio y localidades seleccionado
-  restaurantesFiltrados = computed(() => {
+  readonly restaurantesFiltrados = computed(() => {
     let lista = this.restaurantesCargados();
 
     const texto = this.textoBusqueda().toLowerCase().trim();
     if (texto) {
-      lista = lista.filter(r =>
-        r.documentName.toLowerCase().includes(texto)
-      );
+      lista = lista.filter(r => r.documentName.toLowerCase().includes(texto));
     }
 
     const territorio = this.territorioSeleccionado().toLowerCase().trim();
     if (territorio) {
-      lista = lista.filter(r =>
-        r.territory.toLowerCase().trim() === territorio
-      );
+      lista = lista.filter(r => r.territory.toLowerCase().trim() === territorio);
     }
 
     const seleccionadas = this.localidadesSeleccionadas();
     if (seleccionadas.size > 0) {
-      lista = lista.filter(r =>
-        seleccionadas.has(r.locality?.trim() || '')
-      );
+      lista = lista.filter(r => seleccionadas.has(r.locality?.trim() || ''));
     }
 
     return lista;
   });
 
+  get localidadesSeleccionadasArray(): string[] {
+    return Array.from(this.localidadesSeleccionadas());
+  }
+
   onTerritorioChange(event: any) {
     this.territorioSeleccionado.set(event.detail.value);
-
-    // Limpiar localidades que no pertenezcan al nuevo territorio
     const nuevasLocalidades = new Set(
       Array.from(this.localidadesSeleccionadas()).filter(loc =>
         this.localidadesFiltradasPorTerritorio().includes(loc)
@@ -162,37 +108,86 @@ export class HomePage {
   }
 
   onLocalidadesChange(event: any) {
-  // event.detail.value es un array de strings seleccionados
-  this.localidadesSeleccionadas.set(new Set(event.detail.value));
-}
+    this.localidadesSeleccionadas.set(new Set(event.detail.value));
+  }
 
   limpiarLocalidades() {
     this.localidadesSeleccionadas.set(new Set());
   }
 
+  eliminarLocalidad(loc: string) {
+    const nuevas = new Set(this.localidadesSeleccionadas());
+    nuevas.delete(loc);
+    this.localidadesSeleccionadas.set(nuevas);
+  }
+
+  limpiarTodosFiltros() {
+    this.textoBusqueda.set('');
+    this.territorioSeleccionado.set('');
+    this.localidadesSeleccionadas.set(new Set());
+  }
+
+  private async mostrarToast(mensaje: string, color: 'success' | 'danger' | 'warning') {
+    const toast = await this.toastCtrl.create({
+      message: mensaje,
+      duration: 3000,
+      color,
+      position: 'bottom',
+      buttons: [{ text: 'X', role: 'cancel' }]
+    });
+    await toast.present();
+  }
+
+  async confirmarImportacion() {
+    const alert = await this.alertCtrl.create({
+      header: '⚠️ Confirmar actualización',
+      // ✅ H2 + H7: Lenguaje de usuario, número exacto de registros afectados
+      message: `Esta acción borrará <strong>${this.restaurantes.length} restaurantes</strong>
+                actuales y los reemplazará con los datos del archivo local. ¿Deseas continuar?`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Sí, actualizar', role: 'confirm', handler: () => this.importarJSON() }
+      ]
+    });
+    await alert.present();
+  }
+
   async importarJSON() {
     this.importando.set(true);
     const datosCollection = collection(this.firestore, 'restaurantesColleccion');
-    
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Borrando datos anteriores...',
+      backdropDismiss: false
+    });
+    await loading.present();
+
     try {
-      this.estadoImportacion.set('Borrando datos de Firebase...'); 
-      // Borrar todos los documentos existentes
       const snapshot = await getDocs(datosCollection);
-      for (const d of snapshot.docs) {
-        await deleteDoc(doc(this.firestore, 'restaurantesColleccion', d.id));
-      }
+      await Promise.all(
+        snapshot.docs.map(d => deleteDoc(doc(this.firestore, 'restaurantesColleccion', d.id)))
+      );
 
-      this.estadoImportacion.set('Importando JSON a Firebase...');
+      loading.message = 'Subiendo restaurantes...';
+      this.estadoImportacion.set('Subiendo restaurantes...');
 
-      // Insertar los documentos nuevos
       for (const r of this.restaurantes) {
         await addDoc(datosCollection, r);
       }
 
-      this.estadoImportacion.set('JSON importado correctamente!');
-    } catch (error) {
+      await loading.dismiss();
+      this.estadoImportacion.set('');
+      await this.mostrarToast('✅ Restaurantes actualizados correctamente', 'success');
+
+    } catch (error: any) {
+      await loading.dismiss();
       console.error('Error al importar JSON:', error);
-      this.estadoImportacion.set('Error al importar JSON. Revisa la consola.');
+      this.estadoImportacion.set('');
+      // ✅ H9: Mensaje específico según tipo de error
+      const msg = error?.code === 'permission-denied'
+        ? '❌ Sin permisos en Firebase. Revisa las reglas de seguridad.'
+        : '❌ Error al actualizar. Revisa tu conexión a internet.';
+      await this.mostrarToast(msg, 'danger');
     } finally {
       this.importando.set(false);
     }
@@ -202,13 +197,21 @@ export class HomePage {
     this.cargando.set(true);
     this.estadoCarga.set('Cargando restaurantes...');
     const datosCollection = collection(this.firestore, 'restaurantesColleccion');
+
     try {
       const snapshot = await getDocs(datosCollection);
-      this.restaurantesCargados.set(snapshot.docs.map(doc => doc.data() as Restaurante));
-      this.estadoCarga.set('Se han cargado '+ snapshot.docs.length +' restaurantes.');
-    } catch (error) {
+      this.restaurantesCargados.set(snapshot.docs.map(d => d.data() as Restaurante));
+      this.estadoCarga.set('');
+      await this.mostrarToast(`✅ ${snapshot.docs.length} restaurantes cargados`, 'success');
+
+    } catch (error: any) {
       console.error('Error al cargar datos:', error);
-      this.estadoCarga.set('Error al cargar datos. Revisa la consola.');
+      this.estadoCarga.set('');
+      // ✅ H9: Mensaje específico según tipo de error
+      const msg = error?.code === 'permission-denied'
+        ? '❌ Sin permisos en Firebase. Revisa las reglas de seguridad.'
+        : '❌ Error al cargar datos. Revisa tu conexión a internet.';
+      await this.mostrarToast(msg, 'danger');
     } finally {
       this.cargando.set(false);
     }
@@ -219,9 +222,8 @@ export class HomePage {
     return Array.from({ length: count }, (_, i) => i);
   }
 
-  // Devuelve un array para mostrar iconos de Sol Repsol
-  repsolSoles(restaurante: Restaurante): any[] {
-    const n = Number(restaurante.repsolSun) || 0; // Si es nulo o no numérico, pone 0
-    return Array.from({ length: n }, (_, i) => i); // Devuelve un array con n elementos
+  repsolSoles(r: Restaurante): number[] {
+    const n = Number(r.repsolSun) || 0;
+    return Array.from({ length: n }, (_, i) => i);
   }
 }
