@@ -16,6 +16,12 @@
         title="Cargar restaurantes desde Firebase">
         <ion-icon slot="icon-only" name="restaurant-outline"></ion-icon>
       </ion-button>
+      <ion-button
+        (click)="exportarJSON()"
+        [disabled]="cargando() || importando()"
+        title="Exportar datos a archivo local">
+        <ion-icon slot="icon-only" name="download-outline"></ion-icon>
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -27,7 +33,8 @@
       <ion-icon slot="start" name="information-circle-outline" color="primary"></ion-icon>
       <ion-label class="ion-text-wrap">
         Usa <ion-icon name="restaurant-outline"></ion-icon> <strong>Cargar</strong> para ver los datos,
-        o <ion-icon name="cloud-upload-outline"></ion-icon> <strong>Actualizar</strong> para subir datos nuevos a Firebase.
+        , <ion-icon name="cloud-upload-outline"></ion-icon> <strong>Actualizar</strong> para subir datos nuevos a Firebase.
+        o <ion-icon name="download-outline"></ion-icon> <strong>Exportar</strong> para guardar los datos en tu dispositivo.
       </ion-label>
     </ion-item>
   }
