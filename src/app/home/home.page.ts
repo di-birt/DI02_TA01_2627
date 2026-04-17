@@ -10,7 +10,8 @@ import {
   star, sunny, cloudUploadOutline, restaurantOutline,
   closeCircleOutline, searchOutline, filterOutline, trashOutline,
   // ✅ Añadidos: iconos que se usan en el HTML pero faltaban registrados
-  globeOutline, warningOutline, informationCircleOutline
+  globeOutline, warningOutline, informationCircleOutline,
+  downloadOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -44,25 +45,25 @@ export class HomePage {
     addIcons({
       star, sunny, cloudUploadOutline, restaurantOutline,
       closeCircleOutline, searchOutline, filterOutline, trashOutline,
-      globeOutline, warningOutline, informationCircleOutline
+      globeOutline, warningOutline, informationCircleOutline, downloadOutline
     });
   }
 
   //computed para derivar datos basados en el estado actual de los signals, evitando cálculos innecesarios y mejorando el rendimiento
   hayDatos = computed(() => this.restaurantesCargados().length > 0);
 
-  readonly hayFiltrosActivos = computed(() =>
+  hayFiltrosActivos = computed(() =>
     !!this.textoBusqueda() ||
     !!this.territorioSeleccionado() ||
     this.localidadesSeleccionadas().size > 0
   );
 
-  readonly territoriosFiltrados = computed(() => {
+  territoriosFiltrados = computed(() => {
     const territorios = this.restaurantesCargados().map(r => r.territory);
     return Array.from(new Set(territorios)).sort();
   });
 
-  readonly localidadesFiltradasPorTerritorio = computed(() => {
+  localidadesFiltradasPorTerritorio = computed(() => {
     let lista = this.restaurantesCargados();
     const territorio = this.territorioSeleccionado().toLowerCase().trim();
     if (territorio) {
@@ -72,7 +73,7 @@ export class HomePage {
     return Array.from(new Set(localities)).sort();
   });
 
-  readonly restaurantesFiltrados = computed(() => {
+  restaurantesFiltrados = computed(() => {
     let lista = this.restaurantesCargados();
 
     const texto = this.textoBusqueda().toLowerCase().trim();
@@ -215,6 +216,25 @@ export class HomePage {
     } finally {
       this.cargando.set(false);
     }
+  }
+
+  async exportarJSON() {
+    // 1. Obtiene todos los documentos de la colección en Firestore
+  const snapshot = await getDocs(collection(this.firestore, 'restaurantesColleccion'));
+  // 2. Extrae solo los datos de cada documento (sin metadatos de Firestore como id, ref, etc.)
+  const datos = snapshot.docs.map(d => d.data());
+  // 3. Convierte el array de objetos a texto JSON con formato legible (2 espacios de indentación)
+  const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+  // 4. Crea una URL temporal en memoria que apunta a ese blob
+  const url = URL.createObjectURL(blob);
+  // 5. Crea un elemento <a> invisible en el DOM
+  const a = document.createElement('a');
+  // 6. Le asigna la URL del blob como destino del enlace
+  a.href = url;
+  // 7. Le indica al navegador que en vez de navegar, debe descargar con ese nombre
+  a.download = 'restaurantes_backup.json';
+  // 8. Simula un clic en el enlace → el navegador dispara la descarga
+  a.click();
   }
 
   estrellasMichelin(r: Restaurante): number[] {
