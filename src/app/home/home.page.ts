@@ -63,7 +63,6 @@ export class HomePage {
   }
 
   async cargarDatos() {
-    await Promise.resolve();
     this.restaurantesCargados.set(restaurantesJSON as Restaurante[]);
     const total = this.restaurantesCargados().length;
     const toast = await this.toastCtrl.create({
