@@ -34,7 +34,7 @@
             placeholder="Buscar por nombre..."
             [value]="textoBusqueda()"
             [disabled]="!hayDatos()"
-            (ionInput)="textoBusqueda.set($any($event.target).value)">
+            (ionInput)="textoBusqueda.set($event.detail.value ?? '')">
           </ion-input>
         </ion-item>
       </ion-col>

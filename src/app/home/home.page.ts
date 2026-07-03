@@ -27,7 +27,7 @@ export class HomePage {
   //filtro de territorio seleccionado, inicialmente vacío
   territorioSeleccionado = signal('');
   //filtro de localidades seleccionadas, usando un Set para evitar duplicados y facilitar la gestión de selección múltiple
-  localidadesSeleccionadas = signal<Set<string>>(new Set());
+  localidadesSeleccionadas = signal<string[]>([]);
 
   //computed para derivar datos basados en el estado actual de los signals
   //hayDatos indica si hay restaurantes cargados, utilizado para mostrar mensajes o la tabla de resultados
@@ -38,7 +38,7 @@ export class HomePage {
   hayFiltrosActivos = computed(() =>
     !!this.textoBusqueda() ||
     !!this.territorioSeleccionado() ||
-    this.localidadesSeleccionadas().size > 0
+    this.localidadesSeleccionadas().length > 0
   );
 
   //territoriosFiltrados calcula la lista de territorios únicos disponibles en los restaurantes cargados, ordenados alfabéticamente, para mostrar en el dropdown de selección de territorio
@@ -73,8 +73,8 @@ export class HomePage {
     }
 
     const seleccionadas = this.localidadesSeleccionadas();
-    if (seleccionadas.size > 0) {
-      lista = lista.filter(r => seleccionadas.has(r.locality?.trim() || ''));
+    if (seleccionadas.length > 0) {
+      lista = lista.filter(r => seleccionadas.includes(r.locality?.trim() || ''));
     }
 
     return lista;
@@ -86,23 +86,21 @@ export class HomePage {
   }*/
   // Como computed
   localidadesSeleccionadasArray = computed(() => 
-    Array.from(this.localidadesSeleccionadas())
+    this.localidadesSeleccionadas()
   );
 
   //método que se llama cuando cambia el filtro de territorio, actualiza el signal de territorio seleccionado y limpia las localidades seleccionadas que ya no son válidas para el nuevo territorio
   onTerritorioChange(event: any) {
     this.territorioSeleccionado.set(event.detail.value);
-    const nuevasLocalidades = new Set(
-      Array.from(this.localidadesSeleccionadas()).filter(loc =>
-        this.localidadesFiltradasPorTerritorio().includes(loc)
-      )
+    const nuevasLocalidades = this.localidadesSeleccionadas().filter(loc =>
+      this.localidadesFiltradasPorTerritorio().includes(loc)
     );
     this.localidadesSeleccionadas.set(nuevasLocalidades);
   }
 
   //método que se llama cuando cambia el filtro de localidades, actualiza el signal de localidades seleccionadas con las nuevas selecciones (recibidas como un array desde el evento)
   onLocalidadesChange(event: any) {
-    this.localidadesSeleccionadas.set(new Set(event.detail.value));
+    this.localidadesSeleccionadas.set(event.detail.value);
   }
 
   //método privado para mostrar un toast con un mensaje y un color específico (success, danger o warning) utilizando el controlador de toasts de Ionic, utilizado para mostrar mensajes de éxito al cargar datos o mensajes de advertencia cuando no hay resultados que coincidan con los filtros
@@ -121,7 +119,7 @@ export class HomePage {
   limpiarTodosFiltros() {
     this.textoBusqueda.set('');
     this.territorioSeleccionado.set('');
-    this.localidadesSeleccionadas.set(new Set());
+    this.localidadesSeleccionadas.set([]);
   }
 
   //método para cargar los datos de restaurantes desde el JSON incluido en los assets, actualizando el signal de restaurantes cargados con la lista de restaurantes obtenida y mostrando un toast de éxito con el número de restaurantes cargados
