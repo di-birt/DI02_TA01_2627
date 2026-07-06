@@ -74,8 +74,8 @@ export class HomePage {
   });
 
   // Actualiza el territorio seleccionado y elimina las localidades que ya no pertenecen a él
-  onTerritorioChange(event: any) {
-    this.territorioSeleccionado.set(event.detail.value);
+  onTerritorioChange(value: string) {
+    this.territorioSeleccionado.set(value);
     const nuevasLocalidades = this.localidadesSeleccionadas().filter(loc =>
       this.localidadesFiltradasPorTerritorio().includes(loc)
     );
@@ -85,9 +85,6 @@ export class HomePage {
   // ############################### REGION LOCALIDADES ###############################
 
   localidadesSeleccionadas = signal<string[]>([]);
-
-  // Array derivado de localidadesSeleccionadas, listo para usarlo en el template
-  localidadesSeleccionadasArray = computed(() => this.localidadesSeleccionadas());
 
   // Lista de localidades únicas del territorio seleccionado (o de todos si no hay territorio), ordenada alfabéticamente
   localidadesFiltradasPorTerritorio = computed(() => {
@@ -101,8 +98,8 @@ export class HomePage {
   });
 
   // Actualiza las localidades seleccionadas con los valores del evento
-  onLocalidadesChange(event: any) {
-    this.localidadesSeleccionadas.set(event.detail.value);
+  onLocalidadesChange(value: string[]) {
+    this.localidadesSeleccionadas.set(value);
   }
 
   // ############################### REGION RESULTADOS ###############################
