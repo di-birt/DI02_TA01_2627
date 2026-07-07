@@ -14,4 +14,3 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
   ],
 });
-
