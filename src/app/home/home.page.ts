@@ -2,6 +2,7 @@ import { Component, signal, computed, inject } from '@angular/core';
 import restaurantesJSON from '../../assets/datos/restaurantes.json';
 import { IonicModule } from '@ionic/angular';
 import { ToastController } from '@ionic/angular';
+import { ToastController } from '@ionic/angular';
 import { Restaurante } from '../interface/restaurante';
 
 @Component({
@@ -21,6 +22,18 @@ export class HomePage {
   localidadesSeleccionadas = signal<string[]>([]);
   territorioSeleccionado = signal('');
 
+  // Resetea todos los filtros a sus valores iniciales
+  limpiarTodosFiltros() {
+    this.textoBusqueda.set('');
+    this.territorioSeleccionado.set('');
+    this.localidadesSeleccionadas.set([]);
+  }
+
+  // ############################### REGION TERRITORIOS ###############################
+
+  territorioSeleccionado = signal('');
+
+  // Lista de territorios únicos disponibles, ordenada alfabéticamente
   territoriosFiltrados = computed(() => {
     const territorios = this.restaurantesCargados().map(r => r.territory);
     return Array.from(new Set(territorios)).sort();
@@ -36,6 +49,14 @@ export class HomePage {
     return Array.from(new Set(localidades)).sort();
   });
 
+  // Actualiza las localidades seleccionadas con los valores del evento
+  onLocalidadesChange(value: string[]) {
+    this.localidadesSeleccionadas.set(value);
+  }
+
+  // ############################### REGION RESULTADOS ###############################
+
+  // Lista filtrada de restaurantes según todos los filtros activos
   restaurantesFiltrados = computed(() => {
     let lista = this.restaurantesCargados();
     const texto = this.textoBusqueda().toLowerCase().trim();
