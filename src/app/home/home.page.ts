@@ -1,8 +1,9 @@
 import { Component, signal, computed, inject } from '@angular/core';
-import restaurantesJSON from '../../assets/datos/restaurantes.json';
-import { IonicModule } from '@ionic/angular';
-import { ToastController } from '@ionic/angular';
+import { IonicModule, AlertController, ModalController, ToastController, LoadingController } from '@ionic/angular';
 import { Restaurante } from '../interface/restaurante';
+import { RestauranteService } from '../services/restaurante.service';
+import { AddRestauranteModalComponent } from '../components/add-restaurante-modal/add-restaurante-modal.component';
+import restaurantesJSON from '../../assets/datos/restaurantes.json';
 
 @Component({
   selector: 'app-home',
@@ -15,21 +16,91 @@ export class HomePage {
 
   // ############################### REGION DATOS ###############################
 
-  toastCtrl = inject(ToastController);
+  private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
+  private loadingCtrl = inject(LoadingController);
+  private modalCtrl = inject(ModalController);
+  private restauranteService = inject(RestauranteService);
 
-  // Lista completa de restaurantes leída del JSON en tiempo de compilación
+  // Restaurantes leídos del JSON local (usados para la importación a Firebase)
   restaurantes: Restaurante[] = restaurantesJSON as Restaurante[];
 
   // Signal principal con los restaurantes actualmente cargados (vacío hasta que el usuario pulsa "Cargar datos")
   restaurantesCargados = signal<Restaurante[]>([]);
 
+  // true durante la carga de datos
+  cargando = signal(false);
+
+  // true durante la importación del JSON a Firebase
+  importando = signal(false);
+
   // true cuando hay al menos un restaurante cargado
   hayDatos = computed(() => this.restaurantesCargados().length > 0);
 
-  // Carga la lista completa en el signal y muestra un toast de confirmación
-  cargarDatos() {
-    this.restaurantesCargados.set(this.restaurantes);
-    this.mostrarToast(`${this.restaurantes.length} restaurantes cargados`, 'success');
+  // Carga los restaurantes desde Firebase y muestra un toast de confirmación
+  async cargarDatos() {
+    this.cargando.set(true);
+    try {
+      const datos = await this.restauranteService.getAll();
+      this.restaurantesCargados.set(datos);
+      this.mostrarToast(`${datos.length} restaurantes cargados`, 'success');
+    } catch {
+      this.mostrarToast('Error al cargar los datos desde Firebase', 'danger');
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  // Muestra un diálogo de confirmación antes de iniciar la importación
+  async confirmarImportacion() {
+    const alert = await this.alertCtrl.create({
+      header: 'Confirmar importación',
+      subHeader: `Se importarán ${this.restaurantes.length} restaurantes`,
+      message: 'Los datos actuales de Firebase serán borrados y reemplazados con los del archivo local. ¿Deseas continuar?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Sí, importar', role: 'confirm', handler: () => this.importarJSON() }
+      ]
+    });
+    await alert.present();
+  }
+
+  // Borra todos los datos de Firebase y sube los restaurantes del JSON local
+  async importarJSON() {
+    this.importando.set(true);
+    const loading = await this.loadingCtrl.create({
+      message: 'Borrando datos anteriores...',
+      backdropDismiss: false
+    });
+    await loading.present();
+    try {
+      await this.restauranteService.deleteAll();
+      loading.message = 'Subiendo restaurantes...';
+      await this.restauranteService.addAll(this.restaurantes);
+      await loading.dismiss();
+      this.mostrarToast(`${this.restaurantes.length} restaurantes importados correctamente`, 'success');
+    } catch (error: any) {
+      await loading.dismiss();
+      console.error('Error al importar JSON:', error);
+      const msg = error?.code === 'permission-denied'
+        ? 'Sin permisos en Firebase. Revisa las reglas de seguridad.'
+        : 'Error al importar. Revisa tu conexión a internet.';
+      this.mostrarToast(msg, 'danger');
+    } finally {
+      this.importando.set(false);
+    }
+  }
+
+  // Abre el modal para añadir un restaurante nuevo
+  async abrirModalAnadir() {
+    const modal = await this.modalCtrl.create({
+      component: AddRestauranteModalComponent,
+    });
+    await modal.present();
+    const { role } = await modal.onWillDismiss();
+    if (role === 'confirm') {
+      await this.cargarDatos();
+    }
   }
 
   // Muestra un toast con el mensaje y color indicados

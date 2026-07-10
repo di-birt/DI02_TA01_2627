@@ -2,9 +2,29 @@
   <ion-toolbar>
     <ion-title>Guía de Restaurantes Euskadi</ion-title>
     <ion-buttons slot="end">
+      <!--<ion-button
+        (click)="abrirModalAnadir()"
+        [disabled]="cargando() || importando()"
+        title="Añadir un restaurante nuevo">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Añadir
+      </ion-button>-->
+      <ion-button
+        (click)="confirmarImportacion()"
+        [disabled]="cargando() || importando()"
+        title="Importar restaurantes del JSON local a Firebase">
+        @if (importando()) {
+          <ion-spinner name="crescent" style="width:18px;height:18px;margin-right:6px;"></ion-spinner>
+        }
+        Importar JSON
+      </ion-button>
       <ion-button
         (click)="cargarDatos()"
-        title="Cargar restaurantes desde el archivo JSON local">
+        [disabled]="cargando() || importando()"
+        title="Cargar restaurantes desde Firebase">
+        @if (cargando()) {
+          <ion-spinner name="crescent" style="width:18px;height:18px;margin-right:6px;"></ion-spinner>
+        }
         Cargar datos
       </ion-button>
     </ion-buttons>
