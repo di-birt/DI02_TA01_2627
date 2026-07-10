@@ -2,7 +2,6 @@ import { Component, signal, computed, inject } from '@angular/core';
 import { IonicModule, AlertController, ModalController, ToastController, LoadingController } from '@ionic/angular';
 import { Restaurante } from '../interface/restaurante';
 import { RestauranteService } from '../services/restaurante.service';
-import { AddRestauranteModalComponent } from '../components/add-restaurante-modal/add-restaurante-modal.component';
 import restaurantesJSON from '../../assets/datos/restaurantes.json';
 
 @Component({
@@ -77,29 +76,16 @@ export class HomePage {
       await this.restauranteService.deleteAll();
       loading.message = 'Subiendo restaurantes...';
       await this.restauranteService.addAll(this.restaurantes);
-      await loading.dismiss();
       this.mostrarToast(`${this.restaurantes.length} restaurantes importados correctamente`, 'success');
     } catch (error: any) {
-      await loading.dismiss();
       console.error('Error al importar JSON:', error);
       const msg = error?.code === 'permission-denied'
         ? 'Sin permisos en Firebase. Revisa las reglas de seguridad.'
         : 'Error al importar. Revisa tu conexión a internet.';
       this.mostrarToast(msg, 'danger');
     } finally {
+      await loading.dismiss();
       this.importando.set(false);
-    }
-  }
-
-  // Abre el modal para añadir un restaurante nuevo
-  async abrirModalAnadir() {
-    const modal = await this.modalCtrl.create({
-      component: AddRestauranteModalComponent,
-    });
-    await modal.present();
-    const { role } = await modal.onWillDismiss();
-    if (role === 'confirm') {
-      await this.cargarDatos();
     }
   }
 

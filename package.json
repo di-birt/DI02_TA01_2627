@@ -1,5 +1,5 @@
 {
-  "name": "DI02_TA02_2627",
+  "name": "DI02_TA01_2627",
   "version": "0.0.1",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
@@ -28,7 +28,7 @@
     "@capacitor/keyboard": "8.0.5",
     "@capacitor/status-bar": "8.0.2",
     "@ionic/angular": "^8.0.0",
-    "firebase": "^12.16.0",
+    "firebase": "^11.0.0",
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
